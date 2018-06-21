@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# XXX/TODO; install -headers pkgs for all kernels
-
 # eh :(
 set -e
 
@@ -9,13 +7,14 @@ set -e
 DRVURL="https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz"
 PREP=0
 TEMPDIR=1
+HDRFIX=1
 
 #
 ERR=0
 
 function usage() {
 cat <<EOF >&2
-Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -T ]
+Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -T ] [ -x ] [ -s ]
 
  -s  Prep system / install packages (default: no)
 
@@ -23,18 +22,21 @@ Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -T ]
 
  -u  URL to fetch, known to work:
 
-        https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz
-        https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.10/i40e-2.4.10.tar.gz
+      https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz   (default)
+      https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.10/i40e-2.4.10.tar.gz
 
- -p  proxy string to use (sets both http_proxy and https_proxy)
+ -p  proxy string to use; sets both http_proxy and https_proxy (default: nothing set)
 
  -T  don't use a temporary directory (default: do use a temp directory)
+
+ -x  don't try to install missing kernel headers (default: do install missing headers)
+
 EOF
 exit 1
 }
 
 
-while getopts ":dThp:su:" opt; do
+while getopts ":Thp:su:x" opt; do
     case ${opt} in
 	T )
 	    TEMPDIR=0
@@ -53,6 +55,10 @@ while getopts ":dThp:su:" opt; do
 	    export http_proxy=$OPTARG
 	    export https_proxy=$OPTARG
 	    ;;
+
+	x )
+	    HDRFIX=0
+	    ;;
 	\?)
 	    echo "Invalid: $OPTARG" 1>&2
 	    ERR=1
@@ -70,9 +76,15 @@ done
 echo "URL:   $DRVURL"
 echo "PROXY: ${https_proxy:-(not set)}"
 
+# pkgs to make dkms work
 if [ $PREP -ne 0 ] ; then
     echo "Prepping system"
     apt-get install -y wget build-essential dkms
+fi
+
+# missing kernel headers
+if [ $HDRFIX -ne 0 ] ; then
+    for kver in $(ls /lib/modules/) ; do apt-get install -y linux-headers-$kver ; done
 fi
 
 if [ $TEMPDIR -ne 0 ] ; then
