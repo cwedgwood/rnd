@@ -5,7 +5,7 @@ set -e
 
 # defaults
 DRVURL="https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz"
-VERBOSE=0
+DEBUG=0
 PREP=0
 TEMPDIR=1
 
@@ -14,7 +14,7 @@ ERR=0
 
 function usage() {
 cat <<EOF >&2
-Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -v ]
+Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -T ] [ -d ]
 
  -s  Prep system / install packages (default: no)
 
@@ -29,13 +29,13 @@ Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -v ]
 
  -T  don't use a temporary directory (default: do use a temp directory)
 
- -v  be verbose
+ -d  debug (be a little verbose)
 EOF
 exit 1
 }
 
 
-while getopts ":Thp:su:v" opt; do
+while getopts ":dThp:su:" opt; do
     case ${opt} in
 	T )
 	    TEMPDIR=0
@@ -54,8 +54,8 @@ while getopts ":Thp:su:v" opt; do
 	    export http_proxy=$OPTARG
 	    export https_proxy=$OPTARG
 	    ;;
-	v )
-	    VERBOSE=1
+	d )
+	    DEBUG=1
 	    ;;
 	\?)
 	    echo "Invalid: $OPTARG" 1>&2
@@ -71,7 +71,7 @@ done
 
 [ $ERR -ne 0 ] && exit 1
 
-if [ $VERBOSE -ne 0 ] ; then
+if [ $DEBUG -ne 0 ] ; then
     echo "URL:   $DRVURL"
     echo "PROXY: ${https_proxy:-(not set)}"
 fi
