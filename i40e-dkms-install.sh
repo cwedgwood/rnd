@@ -7,7 +7,6 @@ set -e
 DRVURL="https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz"
 VERBOSE=0
 PREP=0
-HWE=0
 TEMPDIR=1
 
 #
@@ -19,11 +18,12 @@ Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -v ]
 
  -s  Prep system / install packages (default: no)
 
- -k  Install hwe kerenl (default: no)
-
  -h  help
 
- -u  URL to fetch
+ -u  URL to fetch, known to work:
+
+        https://sourceforge.net/projects/e1000/files/i40e%20stable/2.4.6/i40e-2.4.6.tar.gz
+        https://sourceforge.net/projects/e1000/files/i40e%20stable/2.10.6/i40e-2.10.6.tar.gz
 
  -p  proxy string to use (sets both http_proxy and https_proxy)
 
@@ -35,13 +35,10 @@ exit 1
 }
 
 
-while getopts ":Thkp:su:v" opt; do
+while getopts ":Thp:su:v" opt; do
     case ${opt} in
 	T )
 	    TEMPDIR=0
-	    ;;
-	k )
-	    HWE=1
 	    ;;
 	s )
 	    PREP=1
@@ -82,11 +79,6 @@ fi
 if [ $PREP -ne 0 ] ; then
     echo "Prepping system"
     apt-get install -y wget build-essential dkms
-fi
-
-if [ $HWE -ne 0 ] ; then
-    echo "Installing HWE kernel"
-    apt-get install -y linux-signed-generic-hwe-16.04
 fi
 
 if ! dkms status -k $(uname -r) | grep -q installed ; then
