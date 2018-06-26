@@ -113,6 +113,7 @@ while : ; do
 	echo "Fetching $DRVURL failed after $trycount attempts" 1>&2
 	exit 1
     fi
+    sleep 10
     trycount=$(($trycount+1))
 done
 
