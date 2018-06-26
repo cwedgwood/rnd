@@ -102,7 +102,19 @@ if [ $TEMPDIR -ne 0 ] ; then
 	cd $tmpdir
 fi
 
-curl -L --silent $DRVURL | tar -xz
+# it's been observed when testing the fetch from sf.net it fails frequently
+trycount=1
+while : ; do
+    if curl -L --silent $DRVURL | tar -xz ; then
+	break
+    fi
+    if [ $trycount -ge 3 ] ; then
+	echo 1>&2
+	echo "Fetching $DRVURL failed after $trycount attempts" 1>&2
+	exit 1
+    fi
+    trycount=$(($trycount+1))
+done
 
 # base dir (name)
 bdir=$(ls|grep i40e)
