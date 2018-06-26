@@ -12,6 +12,8 @@ HDRFIX=1
 #
 ERR=0
 
+# ###########################################################################
+
 function usage() {
 cat <<EOF >&2
 Usage: $(basename $0) [-h] [-u driver-url] [-p http://proxy.to.use:port] [ -T ] [ -x ] [ -s ]
@@ -35,6 +37,10 @@ EOF
 exit 1
 }
 
+# ###########################################################################
+
+# if we've already run in 'reboot mode' we don't want to run again
+[ -e /var/lib/i40e.done ] && exit 0
 
 while getopts ":Thp:su:x" opt; do
     case ${opt} in
@@ -84,7 +90,7 @@ fi
 
 # missing kernel headers
 if [ $HDRFIX -ne 0 ] ; then
-    for kver in $(ls /lib/modules/) ; do apt-get install -y linux-headers-$kver ; done
+    for krel in $(ls /lib/modules/) ; do apt-get install -y linux-headers-$krel ; done
 fi
 
 if [ $TEMPDIR -ne 0 ] ; then
@@ -130,14 +136,35 @@ AUTOINSTALL="yes"
 EOF
 dkms add -m i40e -v "${DRVVER}"
 # install for other kernels ('dkms autoinstall' won't do this)
-for kver in $(ls /lib/modules/) ; do dkms autoinstall -k $kver ; done
+for krel in $(ls /lib/modules/) ; do dkms autoinstall -k $krel ; done
+
+# make sure modprobe seens the 'right' module version
+pver=$(modinfo i40e | grep ^version | awk '{print $2}')
+if [ "${pver}" != "${DRVVER}" ] ; then
+    # not really sure if this can ever happen
+    echo "ERROR: Module system does not see the version we just built" 2>&1
+    exit 1
+fi
+# once we have the 'right' module version in a place modprobe will
+# find it, this script should become a noop on subsequent reboots
+touch /var/lib/i40e.done
 
 # make sure we have the right module loaded
 if [ -e /sys/module/i40e/version ] ; then
     lver="$(cat /sys/module/i40e/version)"
     if [ "$lver" != "${DRVVER}" ] ; then
 	echo "Wrong module version loaded $lver, removing." >&2
-	rmmod i40e
+	if ! rmmod i40e ; then
+	    # rmmod didn't work, try harder, unbind the driver from the OS
+	    cd /sys/bus/pci/drivers/i40e/
+	    for i in 0* ; do
+		[ -e "${i}" ] && echo "${i}" > unbind
+	    done
+	    if ! rmmod i40e ; then
+		echo "NOTICE: Unable to remove the i40e driver, rebooting" 1>&2
+		/sbin/reboot
+	    fi
+	fi
     fi
 fi
 
