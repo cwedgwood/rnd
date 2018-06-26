@@ -168,3 +168,7 @@ sync
 # interface is in use in complicated ways
 wall "i40e driver updated - rebooting"
 /sbin/reboot
+# don't exit successfully, doing that would allow prom to start a few
+# seconds before reboot takes effect
+sleep infinity
+exit 1
