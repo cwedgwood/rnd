@@ -145,28 +145,13 @@ if [ "${pver}" != "${DRVVER}" ] ; then
     echo "ERROR: Module system does not see the version we just built" 2>&1
     exit 1
 fi
+
 # once we have the 'right' module version in a place modprobe will
 # find it, this script should become a noop on subsequent reboots
 touch /var/lib/i40e.done
+sync
 
-# make sure we have the right module loaded
-if [ -e /sys/module/i40e/version ] ; then
-    lver="$(cat /sys/module/i40e/version)"
-    if [ "$lver" != "${DRVVER}" ] ; then
-	echo "Wrong module version loaded $lver, removing." >&2
-	if ! rmmod i40e ; then
-	    # rmmod didn't work, try harder, unbind the driver from the OS
-	    cd /sys/bus/pci/drivers/i40e/
-	    for i in 0* ; do
-		[ -e "${i}" ] && echo "${i}" > unbind
-	    done
-	    if ! rmmod i40e ; then
-		echo "NOTICE: Unable to remove the i40e driver, rebooting" 1>&2
-		/sbin/reboot
-	    fi
-	fi
-    fi
-fi
-
-modprobe i40e
-echo "i40e loaded, version: $(cat /sys/module/i40e/version)"
+# we can't rely on rmmod/insmod; the driver may not be robust or the
+# interface is in use in complicated ways
+wall "i40e driver updated - rebooting"
+/sbin/reboot
