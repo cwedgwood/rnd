@@ -1,0 +1,24 @@
+# cw-i40e-install.service -*- conf -*-
+
+# this runs on boot or `systemctl start cw-i40e-install.service'
+
+[Unit]
+Description=Service for Installing i40e driver
+DefaultDependencies=no
+After=local-fs.target
+
+# Hold run-after.service off until this completes (and optionally
+# reboots)
+RequiredBy=run-after.service
+# Before doesn't seem to prevent run-after.service from running even
+# when we have RequiredBy
+Before=run-after.service
+
+# *needs* to be Type=oneshot, Restart=no
+[Service]
+Type=oneshot
+ExecStart=/opt/i40e-dkms-install.sh
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

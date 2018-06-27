@@ -1,0 +1,18 @@
+# cw-after.service -*- conf -*-
+
+# this runs on boot or `systemctl start cw-after.service'
+
+[Unit]
+Description=Runs after i40e has completed
+# After on i40e is *necessary*, Requires is only necessary if i40e'
+# lacks RequiredBy; put both here for good measure
+After=local-fs.target i40e-dkms-install.service
+Requires=i40e-dkms-install.service
+
+[Service]
+Type=simple
+ExecStart=/opt/run-after.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
